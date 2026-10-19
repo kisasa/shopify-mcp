@@ -696,6 +696,15 @@ Common causes:
 - **"Access denied for … field"**: the app is missing a scope. See the scope table under [Authentication](#authentication), then release a new app version, approve it on the store, and restart the server.
 - **Tools don't appear**: fully quit and restart Claude Desktop after editing its config.
 
+## Releasing
+
+Releases are published automatically by `.github/workflows/publish.yml` when a version bump reaches `main`:
+
+1. In your PR, bump `version` in `package.json` and both `version` fields in `server.json` (they must match, or the workflow fails).
+2. Merge to `main`. The workflow publishes to npm (with provenance), publishes to the MCP Registry, and creates a `vX.Y.Z` GitHub release.
+
+Merges that don't change the version publish nothing.
+
 ## Credits
 
 This project builds on the work of:
