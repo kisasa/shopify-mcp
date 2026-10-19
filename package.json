@@ -1,9 +1,12 @@
 {
   "name": "@kisasa/shopify-mcp",
-  "version": "1.0.8",
-  "description": "MCP Server for Shopify API, enabling interaction with store data through GraphQL API",
+  "version": "1.0.0",
+  "description": "MCP server for the Shopify Admin GraphQL API: products, media, orders, customers, inventory, and sales channels",
+  "mcpName": "io.github.kisasa/shopify-mcp",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": {
+    "shopify-mcp": "dist/index.js"
+  },
   "type": "module",
   "scripts": {
     "build": "rimraf dist && tsc",
@@ -22,7 +25,10 @@
     "graphql",
     "ai",
     "llm",
-    "claude"
+    "claude",
+    "mcp-server",
+    "shopify-admin-api",
+    "ecommerce"
   ],
   "author": "Kisasa",
   "license": "MIT",

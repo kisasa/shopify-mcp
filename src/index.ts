@@ -5,9 +5,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import dotenv from "dotenv";
 import { GraphQLClient } from "graphql-request";
 import minimist from "minimist";
+import { createRequire } from "node:module";
 
 import { ShopifyAuth } from "./lib/shopifyAuth.js";
 import { tools } from "./tools/registry.js";
+
+// package.json sits one level above dist/ in the published package
+const packageJson = createRequire(import.meta.url)("../package.json") as { version: string };
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2));
@@ -90,7 +94,7 @@ for (const tool of tools) {
 // Set up MCP server
 const server = new McpServer({
   name: "shopify",
-  version: "1.0.0",
+  version: packageJson.version,
   description:
     "MCP Server for Shopify API, enabling interaction with store data through GraphQL API"
 });
@@ -99,6 +103,7 @@ const server = new McpServer({
 for (const tool of tools) {
   server.tool(
     tool.name,
+    tool.description,
     tool.schema.shape,
     async (args) => {
       const result = await tool.execute(args);

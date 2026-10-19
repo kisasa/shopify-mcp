@@ -99,6 +99,26 @@ If you have an existing custom app with a static `shpat_` access token, you can 
 }
 ```
 
+**Client Credentials via environment variables** (keeps secrets out of the command line):
+
+```json
+{
+  "mcpServers": {
+    "shopify": {
+      "command": "npx",
+      "args": ["-y", "@kisasa/shopify-mcp"],
+      "env": {
+        "MYSHOPIFY_DOMAIN": "<YOUR_SHOP>.myshopify.com",
+        "SHOPIFY_CLIENT_ID": "<YOUR_CLIENT_ID>",
+        "SHOPIFY_CLIENT_SECRET": "<YOUR_CLIENT_SECRET>"
+      }
+    }
+  }
+}
+```
+
+To connect more than one store, add one entry per store with a different name (e.g. `"shopify-store-a"`, `"shopify-store-b"`).
+
 **Static Access Token (legacy):**
 
 ```json
@@ -628,11 +648,12 @@ These tools work with sales channels (publications with an app catalog, such as 
 
 ### Inventory & Pricing (4 tools)
 
-1. **`inventory-set-quantities`** — Set absolute inventory quantities at locations with validated reason codes
-2. **`get-inventory-levels`** — Get inventory levels for an item across locations
-3. **`get-inventory-items`** — Get inventory items for a product (cost, tracking, country of origin)
-4. **`get-price-lists`** — List price lists with fixed prices and quantity rules
-5. **`get-product-variants-detailed`** — Get detailed variant info (inventory, pricing, images, metafields)
+See also `inventory-set-quantities` under [Inventory Management](#inventory-management-1-tool).
+
+1. **`get-inventory-levels`** — Get inventory levels for an item across locations
+2. **`get-inventory-items`** — Get inventory items for a product (cost, tracking, country of origin)
+3. **`get-price-lists`** — List price lists with fixed prices and quantity rules
+4. **`get-product-variants-detailed`** — Get detailed variant info (inventory, pricing, images, metafields)
 
 ### Order Query Filter Reference
 
@@ -656,11 +677,24 @@ The `get-orders` tool's `query` parameter supports [Shopify search syntax](https
 
 ## Debugging
 
-If you encounter issues, check Claude Desktop's MCP logs:
+If you encounter issues, check Claude Desktop's MCP logs.
+
+macOS:
 
 ```
 tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
 ```
+
+Windows (PowerShell):
+
+```
+Get-Content "$env:APPDATA\Claude\logs\mcp*.log" -Tail 20 -Wait
+```
+
+Common causes:
+
+- **"Access denied for … field"**: the app is missing a scope. See the scope table under [Authentication](#authentication), then release a new app version, approve it on the store, and restart the server.
+- **Tools don't appear**: fully quit and restart Claude Desktop after editing its config.
 
 ## Credits
 

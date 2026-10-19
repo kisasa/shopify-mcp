@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.kisasa/shopify-mcp",
+  "title": "Shopify",
+  "description": "Shopify Admin API tools: products, media, orders, customers, inventory, and sales channels",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/kisasa/shopify-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/kisasa/shopify-mcp#readme",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@kisasa/shopify-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MYSHOPIFY_DOMAIN",
+          "description": "Your store's myshopify.com domain",
+          "placeholder": "your-store.myshopify.com",
+          "isRequired": true
+        },
+        {
+          "name": "SHOPIFY_CLIENT_ID",
+          "description": "Client ID of a Dev Dashboard app (use with SHOPIFY_CLIENT_SECRET, or set SHOPIFY_ACCESS_TOKEN instead)",
+          "isSecret": false
+        },
+        {
+          "name": "SHOPIFY_CLIENT_SECRET",
+          "description": "Client secret of a Dev Dashboard app",
+          "isSecret": true
+        },
+        {
+          "name": "SHOPIFY_ACCESS_TOKEN",
+          "description": "Static Admin API access token (shpat_...) for legacy custom apps, instead of client ID/secret",
+          "isSecret": true
+        },
+        {
+          "name": "SHOPIFY_API_VERSION",
+          "description": "Shopify Admin API version",
+          "default": "2026-01"
+        }
+      ]
+    }
+  ]
+}
