@@ -62,7 +62,7 @@ const addProductMedia = {
         edgesToNodes<{ id: string }>(existing.product.media).map((m) => m.id),
       );
 
-      // productCreateMedia is deprecated as of 2026-01 in favour of productUpdate's media argument
+      // productCreateMedia is deprecated in favour of productUpdate's media argument
       const mutation = gql`
         #graphql
 

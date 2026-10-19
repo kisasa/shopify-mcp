@@ -70,7 +70,7 @@ if (useClientCredentials) {
 process.env.SHOPIFY_ACCESS_TOKEN = accessToken;
 
 // Create Shopify GraphQL client
-const API_VERSION = argv.apiVersion || process.env.SHOPIFY_API_VERSION || "2026-01";
+const API_VERSION = argv.apiVersion || process.env.SHOPIFY_API_VERSION || "2026-10";
 const shopifyClient = new GraphQLClient(
   `https://${MYSHOPIFY_DOMAIN}/admin/api/${API_VERSION}/graphql.json`,
   {

@@ -15,6 +15,7 @@ import type { ShopifyUserError } from "./toolUtils.js";
 export interface SalesChannel {
   id: string;
   name: string;
+  handle: string | null;
   autoPublish: boolean;
   supportsFuturePublishing: boolean;
 }
@@ -36,11 +37,18 @@ export async function fetchSalesChannels(client: GraphQLClient): Promise<SalesCh
         edges {
           node {
             id
-            name
             autoPublish
             supportsFuturePublishing
             catalog {
               title
+              ... on AppCatalog {
+                apps(first: 1) {
+                  nodes {
+                    title
+                    handle
+                  }
+                }
+              }
             }
           }
         }
@@ -59,10 +67,13 @@ export async function fetchSalesChannels(client: GraphQLClient): Promise<SalesCh
       publications: { edges: any[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
     };
     for (const p of edgesToNodes<any>({ edges: data.publications.edges })) {
+      // Publication.name is deprecated, and Catalog.title is an internal label
+      // ("Channel Catalog 123..."), so use the channel app's title ("Online Store")
+      const app = p.catalog?.apps?.nodes?.[0];
       channels.push({
         id: p.id,
-        // Publication.name is deprecated in favour of Catalog.title; fall back if no catalog
-        name: p.catalog?.title ?? p.name,
+        name: app?.title ?? p.catalog?.title ?? p.id,
+        handle: app?.handle ?? null,
         autoPublish: p.autoPublish,
         supportsFuturePublishing: p.supportsFuturePublishing,
       });

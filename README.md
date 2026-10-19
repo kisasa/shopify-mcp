@@ -24,7 +24,7 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 - **Count-Only Mode**: List tools support `countOnly` to get result counts without fetching data
 - **Pagination & Sorting**: Cursor-based pagination and sort keys on all list queries
 - **Advanced Filtering**: Pass-through Shopify query syntax for all list endpoints
-- **GraphQL Integration**: Direct integration with Shopify's GraphQL Admin API (2026-01)
+- **GraphQL Integration**: Direct integration with Shopify's GraphQL Admin API (2026-10)
 - **Comprehensive Error Handling**: Clear error messages for API and authentication issues
 
 ## Prerequisites
@@ -202,7 +202,7 @@ shopify-mcp --clientId=<ID> --clientSecret=<SECRET> --domain=<YOUR_SHOP>.myshopi
 
 ### Additional Options
 
-- `--apiVersion`: Specify the Shopify API version (default: `2026-01`). Can also be set via `SHOPIFY_API_VERSION` environment variable.
+- `--apiVersion`: Specify the Shopify API version (default: `2026-10`). Can also be set via `SHOPIFY_API_VERSION` environment variable.
 
 **⚠️ Important:** If you see errors about "SHOPIFY_ACCESS_TOKEN environment variable is required" when using command-line arguments, you might have a different package installed. Make sure you're using `@kisasa/shopify-mcp`, not `shopify-mcp-server` or the unscoped `shopify-mcp`.
 
@@ -330,7 +330,7 @@ All list query tools (`get-products`, `get-customers`, `get-orders`, `get-custom
 
 1. **`add-product-media`**
 
-   - Attach images to an existing product by public URL (uses `productUpdate` with `media`; `productCreateMedia` is deprecated in 2026-01)
+   - Attach images to an existing product by public URL (uses `productUpdate` with `media`; `productCreateMedia` is deprecated)
    - Inputs:
      - `productId` (string, required): Shopify product GID
      - `media` (array, required): Images to attach, each `{ originalSource, alt? }`. `originalSource` must be a publicly accessible URL that Shopify can download
@@ -358,7 +358,7 @@ These tools work with sales channels (publications with an app catalog, such as 
 
    - List the store's sales channels
    - Inputs: none
-   - Returns: each channel's `id`, `name`, `autoPublish`, and `supportsFuturePublishing`
+   - Returns: each channel's `id`, `name` (e.g. `"Online Store"`), `handle` (e.g. `"online_store"`), `autoPublish`, and `supportsFuturePublishing`
 
 2. **`get-product-publications`**
 

@@ -42,7 +42,7 @@
         {
           "name": "SHOPIFY_API_VERSION",
           "description": "Shopify Admin API version",
-          "default": "2026-01"
+          "default": "2026-10"
         }
       ]
     }
