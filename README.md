@@ -2,12 +2,16 @@
 
 MCP Server for Shopify API, enabling interaction with store data through GraphQL API. This server provides tools for managing products, customers, orders, and more.
 
-**📦 Package Name: `@kisasa/shopify-mcp`** (a fork of [GeLi2001/shopify-mcp](https://github.com/GeLi2001/shopify-mcp))
+**📦 Package Name: `@kisasa/shopify-mcp`**
 **🚀 Command: `shopify-mcp` (NOT `shopify-mcp-server`)**
+
+> Built on [lucasjahn/shopify-mcp](https://github.com/lucasjahn/shopify-mcp), itself a fork of [GeLi2001/shopify-mcp](https://github.com/GeLi2001/shopify-mcp). See [Credits](#credits).
 
 ## Features
 
-- **Product Management**: Full CRUD for products, variants, and options (8 tools)
+- **Product Management**: Full CRUD for products, variants, and options, including variant images and inventory policy (8 tools)
+- **Product Media**: Attach images to products by URL and check processing status (2 tools)
+- **Sales Channel Publishing**: List sales channels and publish or unpublish products on them (4 tools)
 - **Customer Management**: Full CRUD, merge, and address management (8 tools)
 - **Order Management**: Smart lookup, cancel, close/open, mark as paid, fulfillment, refunds (10 tools)
 - **Metafield Management**: Get, set, and delete metafields on any resource (3 tools)
@@ -40,10 +44,29 @@ As of January 1, 2026, new Shopify apps are created in the **Dev Dashboard** and
 
 1. From your Shopify admin, go to **Settings** > **Apps and sales channels**
 2. Click **Develop apps** > **Build app in dev dashboard**
-3. Create a new app and configure **Admin API scopes**:
+3. Create a new app and configure **Admin API scopes**. The core scopes are:
    - `read_products`, `write_products`
    - `read_customers`, `write_customers`
    - `read_orders`, `write_orders`
+
+   Some tools need additional scopes. Add only the ones for features you use:
+
+   | Scopes | Needed for |
+   |--------|-----------|
+   | `read_all_orders` | Orders older than 60 days (otherwise order tools only see recent orders) |
+   | `read_inventory`, `write_inventory` | `get-inventory-levels`, `inventory-set-quantities` |
+   | `read_locations` | `get-locations`, `get-inventory-levels` |
+   | `read_markets` | `get-markets` |
+   | `read_draft_orders`, `write_draft_orders` | `create-draft-order`, `complete-draft-order` |
+   | `read_merchant_managed_fulfillment_orders`, `write_merchant_managed_fulfillment_orders` | `get-fulfillment-orders`, `create-fulfillment` |
+   | `read_publications`, `write_publications` | `get-publications`, `get-product-publications`, `publish-product`, `unpublish-product` |
+
+   For every tool, the full list is:
+   ```
+   read_products,write_products,read_customers,write_customers,read_orders,write_orders,read_all_orders,read_inventory,write_inventory,read_locations,read_markets,read_draft_orders,write_draft_orders,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders,read_publications,write_publications
+   ```
+
+   After changing scopes, release a new app version, approve it on the store, and restart the MCP server so it fetches a token with the new scopes.
 4. Install the app on your store
 5. Copy your **Client ID** and **Client Secret** from the app's API credentials
 
@@ -163,7 +186,7 @@ shopify-mcp --clientId=<ID> --clientSecret=<SECRET> --domain=<YOUR_SHOP>.myshopi
 
 **⚠️ Important:** If you see errors about "SHOPIFY_ACCESS_TOKEN environment variable is required" when using command-line arguments, you might have a different package installed. Make sure you're using `@kisasa/shopify-mcp`, not `shopify-mcp-server` or the unscoped `shopify-mcp`.
 
-## Available Tools (45)
+## Available Tools (51)
 
 ### Shared Capabilities
 
@@ -187,6 +210,8 @@ All list query tools (`get-products`, `get-customers`, `get-orders`, `get-custom
      - `sortKey` (string, optional): One of `CREATED_AT`, `ID`, `INVENTORY_TOTAL`, `PRODUCT_TYPE`, `PUBLISHED_AT`, `RELEVANCE`, `TITLE`, `UPDATED_AT`, `VENDOR`
      - `reverse` (boolean, optional): Reverse the sort order
      - `after` / `before` (string, optional): Pagination cursors
+     - `fields` (array, optional): Fields to fetch. Available: `id`, `title`, `description`, `handle`, `status`, `createdAt`, `updatedAt`, `totalInventory`, `vendor`, `productType`, `tags`, `mediaCount`, `priceRange`, `media`, `variants` (first 10, with `id`, `title`, `price`, `inventoryQuantity`, `sku`, `barcode`, `inventoryPolicy`)
+     - `countOnly` (boolean, optional): Return only `{ count: N }`
 
 2. **`get-product-by-id`**
 
@@ -270,6 +295,9 @@ All list query tools (`get-products`, `get-customers`, `get-orders`, `get-custom
        - `weight` (number, optional): Weight of the variant
        - `weightUnit` (string, optional): `"GRAMS"`, `"KILOGRAMS"`, `"OUNCES"`, or `"POUNDS"`
        - `optionValues` (array, optional): Option values, e.g. `[{ optionName: "Size", name: "A4" }]`
+       - `mediaId` (string, optional): Product media GID (`gid://shopify/MediaImage/...`) to use as the variant's image. The media must already be attached to the product (see `add-product-media`) and should be `READY`
+       - `inventoryPolicy` (string, optional): `"DENY"` stops sales at 0 inventory, `"CONTINUE"` allows overselling
+   - Returns: `{ created, updated, userErrors }`. Each variant includes `inventoryPolicy`, `mediaId`, and `imageUrl`. `userErrors` are returned (tagged `operation: "create"` or `"update"`) rather than thrown, so always check them
 
 8. **`delete-product-variants`**
 
@@ -277,6 +305,63 @@ All list query tools (`get-products`, `get-customers`, `get-orders`, `get-custom
    - Inputs:
      - `productId` (string, required): Shopify product GID
      - `variantIds` (array of strings, required): Variant GIDs to delete
+
+### Product Media (2 tools)
+
+1. **`add-product-media`**
+
+   - Attach images to an existing product by public URL (uses `productUpdate` with `media`; `productCreateMedia` is deprecated in 2026-01)
+   - Inputs:
+     - `productId` (string, required): Shopify product GID
+     - `media` (array, required): Images to attach, each `{ originalSource, alt? }`. `originalSource` must be a publicly accessible URL that Shopify can download
+   - Returns: `{ productId, media, userErrors }`, where each new media item has `id`, `status`, `alt`, `imageUrl`, and `mediaErrors`
+   - Shopify processes media asynchronously. New items usually start as `UPLOADED` or `PROCESSING` with `imageUrl: null`; use `get-product-media` to confirm they reach `READY`
+
+2. **`get-product-media`**
+
+   - List a product's media with processing status
+   - Inputs:
+     - `productId` (string, required): Shopify product GID
+   - Returns: each item's `id`, `status` (`UPLOADED` / `PROCESSING` / `READY` / `FAILED`), `mediaContentType`, `alt`, `imageUrl`, and `mediaErrors` (explains a `FAILED` status)
+
+**Example: give a variant its own image**
+
+1. `add-product-media` with the image URL
+2. `get-product-media` until the new item is `READY`, and copy its `id`
+3. `manage-product-variants` with `{ id: "<variant GID>", mediaId: "<media GID>" }`
+
+### Sales Channel Publishing (4 tools)
+
+These tools work with sales channels (publications with an app catalog, such as Online Store and Point of Sale). Market and B2B catalogs are not included. Requires the `read_publications` and `write_publications` scopes.
+
+1. **`get-publications`**
+
+   - List the store's sales channels
+   - Inputs: none
+   - Returns: each channel's `id`, `name`, `autoPublish`, and `supportsFuturePublishing`
+
+2. **`get-product-publications`**
+
+   - Show whether a product is published on each sales channel
+   - Inputs:
+     - `productId` (string, required): Shopify product GID
+   - Returns: `{ productId, title, publications }`, with `publicationId`, `name`, `published`, and `publishDate` for every channel
+
+3. **`publish-product`**
+
+   - Publish a product to one or more sales channels (uses `publishablePublish`)
+   - Inputs:
+     - `productId` (string, required): Shopify product GID
+     - `publicationIds` (array of strings, optional): Publication GIDs from `get-publications`
+     - `publicationNames` (array of strings, optional): Channel names exactly as returned by `get-publications`, e.g. `["Online Store", "Point of Sale"]`
+     - Provide exactly one of `publicationIds` or `publicationNames`. A name that matches no channel, or more than one, is rejected before anything changes
+   - Returns: the product's state on every channel afterwards, plus `userErrors`
+
+4. **`unpublish-product`**
+
+   - Unpublish a product from one or more sales channels (uses `publishableUnpublish`)
+   - Inputs: same as `publish-product`
+   - Returns: the product's state on every channel afterwards, plus `userErrors`
 
 ### Customer Management (8 tools)
 
@@ -577,6 +662,15 @@ If you encounter issues, check Claude Desktop's MCP logs:
 tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
 ```
 
+## Credits
+
+This project builds on the work of:
+
+- **[GeLi2001/shopify-mcp](https://github.com/GeLi2001/shopify-mcp)**: the original Shopify MCP server
+- **[lucasjahn/shopify-mcp](https://github.com/lucasjahn/shopify-mcp)**: a fork of the original that added field selection, count-only mode, and many of the read-only tools
+
+Thank you to both projects and their contributors.
+
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE). The original copyright notice is retained.
