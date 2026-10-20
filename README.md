@@ -594,7 +594,10 @@ These tools work with sales channels (publications with an app catalog, such as 
    - Inputs:
      - `reason` (string, required): Reason for change (e.g. `"correction"`, `"cycle_count_available"`)
      - `name` (string, required): `"available"` or `"on_hand"`
-     - `quantities` (array, required): Items with `inventoryItemId`, `locationId`, `quantity`
+     - `quantities` (array, required): Items with `inventoryItemId`, `locationId`, `quantity`, and optional `changeFromQuantity`
+       - `changeFromQuantity` (integer or null, optional): The quantity you expect is currently stored. Shopify only applies the change if it still matches, and otherwise returns a `CHANGE_FROM_QUANTITY_STALE` error. Omit it (or pass `null`) to set the quantity without this check
+     - `idempotencyKey` (string, optional): Idempotency key for the request, which Admin API 2026-04 and later require. If omitted, a new UUID is generated for each call. Reuse a key only to retry the exact same request
+   - Returns: `{ idempotencyKey, adjustmentGroup, userErrors }`. `userErrors` include a `code` (e.g. `CHANGE_FROM_QUANTITY_STALE`, `IDEMPOTENCY_KEY_PARAMETER_MISMATCH`) and are returned rather than thrown, so always check them
 
 ### Tag Management (2 tools)
 

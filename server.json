@@ -3,7 +3,7 @@
   "name": "io.github.kisasa/shopify-mcp",
   "title": "Shopify",
   "description": "Shopify Admin API tools: products, media, orders, customers, inventory, and sales channels",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "repository": {
     "url": "https://github.com/kisasa/shopify-mcp",
     "source": "github"
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@kisasa/shopify-mcp",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       },
