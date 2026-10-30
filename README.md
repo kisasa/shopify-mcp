@@ -17,7 +17,7 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 - **Metafield Management**: Get, set, and delete metafields on any resource (3 tools)
 - **Collection Management**: List collections and get collection details with products (2 tools)
 - **Configuration & Discovery**: Shop info, metafield definitions, locations, markets (5 tools)
-- **Inventory & Pricing**: Set quantities, view levels/items, price lists, detailed variants (5 tools)
+- **Inventory & Pricing**: Set quantities and unit costs, view levels/items, price lists, detailed variants (6 tools)
 - **Tag Management**: Add/remove tags on any taggable resource, including bulk operations (2 tools)
 - **Enhanced Order Tools**: Transactions, fulfillment orders, refund details (3 tools)
 - **Field Selection**: All GET tools support a `fields` parameter to fetch only the data you need
@@ -54,7 +54,7 @@ As of January 1, 2026, new Shopify apps are created in the **Dev Dashboard** and
    | Scopes | Needed for |
    |--------|-----------|
    | `read_all_orders` | Orders older than 60 days (otherwise order tools only see recent orders) |
-   | `read_inventory`, `write_inventory` | `get-inventory-levels`, `inventory-set-quantities` |
+   | `read_inventory`, `write_inventory` | `get-inventory-levels`, `inventory-set-quantities`, `update-inventory-item` |
    | `read_locations` | `get-locations`, `get-inventory-levels` |
    | `read_markets` | `get-markets` |
    | `read_draft_orders`, `write_draft_orders` | `create-draft-order`, `complete-draft-order` |
@@ -206,7 +206,7 @@ shopify-mcp --clientId=<ID> --clientSecret=<SECRET> --domain=<YOUR_SHOP>.myshopi
 
 **⚠️ Important:** If you see errors about "SHOPIFY_ACCESS_TOKEN environment variable is required" when using command-line arguments, you might have a different package installed. Make sure you're using `@kisasa/shopify-mcp`, not `shopify-mcp-server` or the unscoped `shopify-mcp`.
 
-## Available Tools (51)
+## Available Tools (52)
 
 ### Shared Capabilities
 
@@ -586,7 +586,7 @@ These tools work with sales channels (publications with an app catalog, such as 
    - Inputs:
      - `metafields` (array, required): Metafields to delete, each with `ownerId`, `namespace`, `key`
 
-### Inventory Management (1 tool)
+### Inventory Management (2 tools)
 
 1. **`inventory-set-quantities`**
 
@@ -598,6 +598,18 @@ These tools work with sales channels (publications with an app catalog, such as 
        - `changeFromQuantity` (integer or null, optional): The quantity you expect is currently stored. Shopify only applies the change if it still matches, and otherwise returns a `CHANGE_FROM_QUANTITY_STALE` error. Omit it (or pass `null`) to set the quantity without this check
      - `idempotencyKey` (string, optional): Idempotency key for the request, which Admin API 2026-04 and later require. If omitted, a new UUID is generated for each call. Reuse a key only to retry the exact same request
    - Returns: `{ idempotencyKey, adjustmentGroup, userErrors }`. `userErrors` include a `code` (e.g. `CHANGE_FROM_QUANTITY_STALE`, `IDEMPOTENCY_KEY_PARAMETER_MISMATCH`) and are returned rather than thrown, so always check them
+
+2. **`update-inventory-item`**
+
+   - Set an inventory item's unit cost and/or whether its inventory is tracked
+   - Inputs:
+     - `inventoryItemId` (string, required): `gid://shopify/InventoryItem/123` or just `123`. This is the inventory item ID, not the variant ID (get it from `get-inventory-items` or `get-product-variants-detailed`). A GID of another type, such as a `ProductVariant` GID, is rejected
+     - `cost` (number or decimal string, optional): Unit cost in the shop's currency, e.g. `12.5` or `"12.50"`. Must be >= 0
+     - `tracked` (boolean, optional): Whether Shopify tracks inventory for this item
+     - Provide at least one of `cost` or `tracked`
+   - Returns: `{ inventoryItemId, unitCost: { amount, currencyCode }, tracked, variantId, productId, productTitle, userErrors }`
+   - If Shopify returns `userErrors`, the call fails as a tool error with their messages, so a rejected update is never mistaken for success
+   - Read the cost back with `get-inventory-items`, which returns `inventoryItem.unitCost`
 
 ### Tag Management (2 tools)
 
@@ -651,7 +663,7 @@ These tools work with sales channels (publications with an app catalog, such as 
 
 ### Inventory & Pricing (4 tools)
 
-See also `inventory-set-quantities` under [Inventory Management](#inventory-management-1-tool).
+See also `inventory-set-quantities` and `update-inventory-item` under [Inventory Management](#inventory-management-2-tools).
 
 1. **`get-inventory-levels`** — Get inventory levels for an item across locations
 2. **`get-inventory-items`** — Get inventory items for a product (cost, tracking, country of origin)

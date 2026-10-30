@@ -24,5 +24,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Test
+        run: npm test
+
       - name: Validate GraphQL
         run: npm run validate:graphql

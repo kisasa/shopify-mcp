@@ -88,6 +88,10 @@ jobs:
         if: steps.plan.outputs.npm == 'true'
         run: npm run build
 
+      - name: Test
+        if: steps.plan.outputs.npm == 'true'
+        run: npm test
+
       - name: Validate GraphQL
         if: steps.plan.outputs.npm == 'true'
         run: npm run validate:graphql
@@ -98,17 +102,21 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # npm can take 10+ minutes to process a new version before serving it,
+      # so poll every 20 seconds for up to 20 minutes
       - name: Wait for npm to serve the new version
         if: steps.plan.outputs.release == 'true'
+        timeout-minutes: 25
         run: |
-          for i in $(seq 1 30); do
-            if npm view "${{ steps.plan.outputs.name }}@${{ steps.plan.outputs.version }}" version >/dev/null 2>&1; then
+          for i in $(seq 1 60); do
+            if npm view "${{ steps.plan.outputs.name }}@${{ steps.plan.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
+              echo "Available after about $(( (i - 1) * 20 )) seconds"
               exit 0
             fi
-            echo "Waiting for npm ($i/30)..."
-            sleep 10
+            echo "Waiting for npm ($i/60)..."
+            sleep 20
           done
-          echo "${{ steps.plan.outputs.name }}@${{ steps.plan.outputs.version }} is not on npm" >&2
+          echo "${{ steps.plan.outputs.name }}@${{ steps.plan.outputs.version }} is not on npm after 20 minutes" >&2
           exit 1
 
       - name: Install mcp-publisher
