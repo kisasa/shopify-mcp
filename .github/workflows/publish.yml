@@ -88,6 +88,10 @@ jobs:
         if: steps.plan.outputs.npm == 'true'
         run: npm run build
 
+      - name: Test
+        if: steps.plan.outputs.npm == 'true'
+        run: npm test
+
       - name: Validate GraphQL
         if: steps.plan.outputs.npm == 'true'
         run: npm run validate:graphql
