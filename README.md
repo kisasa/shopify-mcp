@@ -12,11 +12,11 @@ MCP Server for Shopify API, enabling interaction with store data through GraphQL
 - **Product Management**: Full CRUD for products, variants, and options, including variant images and inventory policy (8 tools)
 - **Product Media**: Attach images to products by URL and check processing status (2 tools)
 - **Sales Channel Publishing**: List sales channels and publish or unpublish products on them (4 tools)
-- **Customer Management**: Full CRUD, merge, and address management (8 tools)
-- **Order Management**: Smart lookup, cancel, close/open, mark as paid, fulfillment, refunds (10 tools)
+- **Customer Management**: Full CRUD, merge, and address management (7 tools)
+- **Order Management**: Smart lookup, cancel, close/open, mark as paid, fulfillment, refunds, draft orders (11 tools)
 - **Metafield Management**: Get, set, and delete metafields on any resource (3 tools)
 - **Collection Management**: List collections and get collection details with products (2 tools)
-- **Configuration & Discovery**: Shop info, metafield definitions, locations, markets (5 tools)
+- **Configuration & Discovery**: Shop info, metafield definitions, locations, markets (4 tools)
 - **Inventory & Pricing**: Set quantities and unit costs, view levels/items, price lists, detailed variants (6 tools)
 - **Tag Management**: Add/remove tags on any taggable resource, including bulk operations (2 tools)
 - **Enhanced Order Tools**: Transactions, fulfillment orders, refund details (3 tools)
@@ -210,13 +210,17 @@ shopify-mcp --clientId=<ID> --clientSecret=<SECRET> --domain=<YOUR_SHOP>.myshopi
 
 ### Shared Capabilities
 
-All list query tools (`get-products`, `get-customers`, `get-orders`, `get-customer-orders`, `get-collections`) support:
+The main list tools (`get-products`, `get-customers`, `get-orders`, `get-customer-orders`) support:
 
 - **Cursor-based pagination**: `after` / `before` (cursor strings), with `pageInfo` in the response (`hasNextPage`, `hasPreviousPage`, `startCursor`, `endCursor`)
 - **Sorting**: `sortKey` (enum specific to each resource) and `reverse` (boolean)
-- **Advanced filtering**: `query` or `searchQuery` parameter accepting [Shopify query syntax](https://shopify.dev/docs/api/usage/search-syntax)
+- **Advanced filtering**: a `query` or `searchQuery` parameter accepting [Shopify query syntax](https://shopify.dev/docs/api/usage/search-syntax) (`get-customer-orders` filters by customer instead)
 - **Field selection**: `fields` parameter to fetch only specific fields, reducing response size
 - **Count-only mode**: `countOnly` parameter returns `{ count: N }` without fetching any resource data — useful for sizing queries before paginating
+
+`get-collections` supports `query` and `fields` but returns only the first page (`first`, up to 250), with no cursors, sorting, or count-only mode.
+
+The single-resource tools `get-product-by-id`, `get-order-by-id`, `get-customer-by-id`, `get-collection-by-id`, and `get-product-variants-detailed` also accept `fields`. Each tool's description lists the fields it supports.
 
 ### Product Management (8 tools)
 
@@ -383,7 +387,7 @@ These tools work with sales channels (publications with an app catalog, such as 
    - Inputs: same as `publish-product`
    - Returns: the product's state on every channel afterwards, plus `userErrors`
 
-### Customer Management (8 tools)
+### Customer Management (7 tools)
 
 1. **`get-customers`**
 
@@ -542,7 +546,8 @@ These tools work with sales channels (publications with an app catalog, such as 
      - `refundLineItems` (array, optional): Line items to refund with `lineItemId`, `quantity`, `restockType` (`CANCEL`/`RETURN`/`NO_RESTOCK`), `locationId`
      - `shipping` (object, optional): `{ amount, fullRefund }` shipping refund
      - `note` (string, optional): Refund note
-     - `notify` (boolean, optional): Send refund notification
+     - `notify` (boolean, optional): Send refund notification. Confirm with the user before enabling, since it emails the customer
+     - `currency` (string, optional): Currency code, when the refund is in a presentment currency different from the shop currency
 
 10. **`create-draft-order`**
 
@@ -552,6 +557,8 @@ These tools work with sales channels (publications with an app catalog, such as 
       - `customerId` (string, optional): Customer GID
       - `email`, `phone`, `note`, `tags`, `poNumber` (optional)
       - `shippingAddress`, `billingAddress` (objects, optional)
+      - `useCustomerDefaultAddress` (boolean, optional): Use the customer's default address
+      - `taxExempt` (boolean, optional): Whether the draft order is tax exempt
       - `appliedDiscount` (object, optional): `{ title, value, valueType }` order-level discount
 
 ### Draft Order Management (1 tool)
@@ -570,8 +577,9 @@ These tools work with sales channels (publications with an app catalog, such as 
    - Get metafields for any Shopify resource (products, orders, customers, variants, collections, etc.)
    - Inputs:
      - `ownerId` (string, required): GID of any resource
-     - `namespace` (string, optional): Filter by namespace
-     - `first` (number, default: 25): Number of metafields to return
+     - `keys` (array of strings, optional): Specific metafields to fetch, as `namespace.key` (e.g. `["custom.color"]`). Use this when you only need certain metafields
+     - `namespace` (string, optional): Filter by namespace. Ignored when `keys` is provided
+     - `first` (number, default: 25, max 50): Number of metafields to return
      - `after` (string, optional): Pagination cursor
 
 2. **`set-metafields`**
@@ -633,29 +641,31 @@ These tools work with sales channels (publications with an app catalog, such as 
 
 1. **`get-collections`**
 
-   - List collections with search, pagination, and sorting
+   - List collections, optionally filtered by a search query
    - Inputs:
-     - `query` (string, optional): Shopify query syntax
-     - `limit` (number, default: 10): Maximum collections to return
-     - `sortKey`, `reverse`, `after`/`before`: Standard pagination and sorting
-     - `fields`, `countOnly`: Standard field selection and count-only mode
+     - `query` (string, optional): Shopify query syntax (e.g. `"title:Summer"` or `"collection_type:smart"`)
+     - `first` (number, default: 25, max 250): Number of collections to return
+     - `fields` (array, optional): Standard field selection
+   - Returns the first page only (no cursors, sorting, or count-only mode)
 
 2. **`get-collection-by-id`**
 
    - Get a single collection with full details including products, rules (smart collections), SEO, and image
    - Inputs:
      - `collectionId` (string, required): Collection ID (e.g. `gid://shopify/Collection/123` or just `123`)
-     - `productsFirst` (number, default: 25): Number of products to include (0 to skip)
+     - `productsFirst` (number, default: 25, max 100): Number of products to include (0 to skip)
      - `fields` (array, optional): Collection-level fields to fetch (`id`, `title`, `handle`, `descriptionHtml`, `sortOrder`, `templateSuffix`, `updatedAt`, `productsCount`, `ruleSet`, `image`, `seo`)
 
 ### Configuration & Discovery (4 tools)
 
-1. **`get-shop-info`** — Get shop details (name, domain, plan, currency, timezone, etc.)
-2. **`get-metafield-definitions`** — List metafield definitions for any owner type with pagination
-3. **`get-locations`** — List all active locations with addresses and fulfillment service info
-4. **`get-markets`** — List all markets with regions, currencies, and domains
+1. **`get-shop-info`** — Get shop details (name, domain, plan, currency, timezone, etc.). No inputs
+2. **`get-metafield-definitions`** — List metafield definitions for an owner type. Inputs: `ownerType` (required, e.g. `PRODUCT`, `ORDER`, `CUSTOMER`), `first` (default 50, max 100)
+3. **`get-locations`** — List locations with addresses and fulfillment service info. Inputs: `includeInactive` (default false), `first` (default 50, max 100)
+4. **`get-markets`** — List markets with regions, currencies, and domains. Input: `first` (default 25, max 50)
 
 ### Enhanced Order & Fulfillment (3 tools)
+
+Each takes `orderId`: a GID (`gid://shopify/Order/123`) or the bare number.
 
 1. **`get-order-transactions`** — Get payment transactions for an order (gateway, status, amounts, card details)
 2. **`get-fulfillment-orders`** — Get fulfillment orders for an order (line items, assigned location, status)
@@ -665,10 +675,10 @@ These tools work with sales channels (publications with an app catalog, such as 
 
 See also `inventory-set-quantities` and `update-inventory-item` under [Inventory Management](#inventory-management-2-tools).
 
-1. **`get-inventory-levels`** — Get inventory levels for an item across locations
-2. **`get-inventory-items`** — Get inventory items for a product (cost, tracking, country of origin)
-3. **`get-price-lists`** — List price lists with fixed prices and quantity rules
-4. **`get-product-variants-detailed`** — Get detailed variant info (inventory, pricing, images, metafields)
+1. **`get-inventory-levels`** — Get inventory levels for an item across locations. Input: `inventoryItemId` (GID or bare number)
+2. **`get-inventory-items`** — Get inventory items for a product (unit cost, tracking, country of origin). Input: `productId` (GID or bare number)
+3. **`get-price-lists`** — List price lists with fixed prices and quantity rules. Input: `first` (default 25, max 50)
+4. **`get-product-variants-detailed`** — Get detailed variant info (inventory, pricing, images, metafields). Inputs: `productId` (GID or bare number), `first` (default 50, max 100), `fields`
 
 ### Order Query Filter Reference
 
